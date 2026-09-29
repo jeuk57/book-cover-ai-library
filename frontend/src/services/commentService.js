@@ -1,21 +1,6 @@
-import axios from "axios";
-const API = "/api";
+import apiClient from "./apiClient";
 
-// 댓글 목록
-export function getComments(bookId) {
-    return axios.get(`${API}/comments/${bookId}`).then(res => res.data);
-}
-
-// 댓글 작성
-export function createComment(bookId, data) {
-    return axios.post(
-        `${API}/comments/${bookId}`,
-        data,
-        { withCredentials: true }
-    ).then(res => res.data);
-}
-
-// 댓글 삭제
-export function deleteComment(commentId) {
-    return axios.delete(`${API}/comments/${commentId}`);
-}
+export const getComments = (bookId) => apiClient.get(`/comments/${bookId}`).then(({ data }) => data);
+export const createComment = (bookId, comment) =>
+    apiClient.post(`/comments/${bookId}`, comment).then(({ data }) => data);
+export const deleteComment = (commentId) => apiClient.delete(`/comments/${commentId}`);

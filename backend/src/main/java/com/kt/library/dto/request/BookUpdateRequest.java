@@ -10,7 +10,7 @@ public class BookUpdateRequest {
 
     private String title;
     private String content;
-    private String author;  // 추가됨
+    private String author;
     private Book.Language language;
     private Book.Genre genre;
 }

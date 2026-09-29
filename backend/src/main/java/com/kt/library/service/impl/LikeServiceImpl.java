@@ -3,6 +3,7 @@ package com.kt.library.service.impl;
 import com.kt.library.domain.Book;
 import com.kt.library.domain.Like;
 import com.kt.library.domain.User;
+import com.kt.library.exception.ResourceNotFoundException;
 import com.kt.library.repository.BookRepository;
 import com.kt.library.repository.LikeRepository;
 import com.kt.library.repository.UserRepository;
@@ -27,18 +28,18 @@ public class LikeServiceImpl implements LikeService {
     public boolean toggleLike(Long bookId, Long userId) {
 
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("책 없음"));
+                .orElseThrow(() -> new ResourceNotFoundException("해당 도서를 찾을 수 없습니다."));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new ResourceNotFoundException("해당 사용자를 찾을 수 없습니다."));
 
         Optional<Like> existing = likeRepository.findByBookIdAndUserId(bookId, userId);
 
         if (existing.isPresent()) {
             likeRepository.delete(existing.get());
-            book.setLikeCount(book.getLikeCount() - 1);
+            book.setLikeCount(Math.max(book.getLikeCount() - 1, 0));
             bookRepository.save(book);
-            return false; // 좋아요 취소됨
+            return false;
         }
 
         Like like = new Like(null, book, user);
@@ -47,7 +48,7 @@ public class LikeServiceImpl implements LikeService {
         book.setLikeCount(book.getLikeCount() + 1);
         bookRepository.save(book);
 
-        return true; // 좋아요 추가됨
+        return true;
     }
 
     @Override

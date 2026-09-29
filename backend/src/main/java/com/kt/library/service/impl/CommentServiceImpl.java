@@ -48,7 +48,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentResponse> getCommentsByBook(Long bookId) {
-        return commentRepository.findByBookId(bookId) // Repository에 이 메서드 존재하는지 확인 필요 (findAllByBookId 등)
+        return commentRepository.findByBookId(bookId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -58,36 +58,29 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public CommentResponse updateComment(Long commentId, Long userId, CommentUpdateRequest request) {
 
-        // 1. 댓글 찾기
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다."));
 
-        // 2. 댓글 작성자와 현재 로그인한 사람이 같은지 확인
         if (!comment.getUser().getId().equals(userId)) {
             throw new UnAuthorizedException("본인의 댓글만 수정할 수 있습니다.");
         }
 
-        // 3. 수정 진행
         comment.setContent(request.getContent());
 
         return toResponse(comment);
     }
 
-    // 댓글 삭제
     @Override
     @Transactional
     public void deleteComment(Long commentId, Long userId) {
 
-        // 1. 댓글 찾기
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글입니다."));
 
-        // 2. 작성자 본인 확인
         if (!comment.getUser().getId().equals(userId)) {
             throw new UnAuthorizedException("본인의 댓글만 삭제할 수 있습니다.");
         }
 
-        // 3. 삭제 진행
         commentRepository.delete(comment);
     }
 

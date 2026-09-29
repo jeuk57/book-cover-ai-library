@@ -1,223 +1,99 @@
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Box, Typography, IconButton, TextField, Button } from "@mui/material";
-
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-
+import { useParams } from "react-router-dom";
+import FavoriteRoundedIcon from "@mui/icons-material/FavoriteRounded";
+import FavoriteBorderRoundedIcon from "@mui/icons-material/FavoriteBorderRounded";
+import ThumbUpRoundedIcon from "@mui/icons-material/ThumbUpRounded";
+import ThumbUpOffAltRoundedIcon from "@mui/icons-material/ThumbUpOffAltRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import { getBook } from "../services/bookService";
-import { getLikeCount, toggleLike, checkLiked } from "../services/likeService";
-import { toggleFavorite, getFavoriteCount, checkFavorited } from "../services/favoriteService";
-import { getComments, createComment, deleteComment } from "../services/commentService";
+import { checkLiked, getLikeCount, toggleLike } from "../services/likeService";
+import { checkFavorited, getFavoriteCount, toggleFavorite } from "../services/favoriteService";
+import { createComment, deleteComment, getComments } from "../services/commentService";
+
+const languageLabels = { KO: "한국어", EN: "영어", JP: "일본어", CN: "중국어" };
+const genreLabels = { FANTASY: "판타지", ROMANCE: "로맨스", THRILLER: "스릴러", SF: "SF" };
 
 export default function BookDetail() {
     const { id } = useParams();
-
     const [book, setBook] = useState(null);
-
-    const [liked, setLiked] = useState(false);            // 좋아요 여부
-    const [saved, setSaved] = useState(false);            // 찜 여부
-    const [likeCount, setLikeCount] = useState(0);        // 좋아요 수
-    const [favoriteCount, setFavoriteCount] = useState(0); // 찜 수
-
+    const [liked, setLiked] = useState(false);
+    const [favorited, setFavorited] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
+    const [favoriteCount, setFavoriteCount] = useState(0);
     const [comment, setComment] = useState("");
     const [comments, setComments] = useState([]);
 
-    const LANGUAGE_LABEL = {
-        KO: "한국어",
-        EN: "영어",
-        JP: "일본어",
-        CN: "중국어",
-    };
+    const loadComments = () => getComments(id).then(setComments);
 
-    const GENRE_LABEL = {
-        FANTASY: "판타지",
-        ROMANCE: "로맨스",
-        THRILLER: "스릴러",
-        SF: "SF",
-    };
-
-
-    // -----------------------------------------------------
-    // 🔥 초기 로딩 - 책 정보 / 댓글 / 좋아요 수 / 찜 수 / 찜 여부
-    // -----------------------------------------------------
     useEffect(() => {
-        getBook(id).then(setBook);
-
-        getComments(id).then(setComments);
-
-        getLikeCount(id).then(setLikeCount);
-
-        getFavoriteCount(id).then(setFavoriteCount);
-
-        // 찜 여부 확인
-        checkFavorited(id)
-            .then((res) => setSaved(res))
-            .catch((err) => console.log("찜 여부 확인 오류:", err));
-
-        // 좋아요 여부 확인
-        checkLiked(id)
-            .then((res) => setLiked(res))
-            .catch((err) => console.log("좋아요 여부 확인 오류:", err));
-
+        Promise.all([getBook(id), getComments(id), getLikeCount(id), getFavoriteCount(id), checkLiked(id), checkFavorited(id)])
+            .then(([bookData, commentData, likes, favorites, isLiked, isFavorited]) => {
+                setBook(bookData);
+                setComments(commentData);
+                setLikeCount(likes);
+                setFavoriteCount(favorites);
+                setLiked(isLiked);
+                setFavorited(isFavorited);
+            })
+            .catch(() => alert("도서 정보를 불러오지 못했습니다."));
     }, [id]);
 
-    if (!book) return <p>Loading...</p>;
-
-    // -----------------------------------------------------
-    // ❤️ 찜 토글
-    // -----------------------------------------------------
-    const handleToggleFavorite = async () => {
-        await toggleFavorite(id);
-        setSaved(!saved);
-        getFavoriteCount(id).then(setFavoriteCount);
+    const handleLike = async () => {
+        try {
+            const active = await toggleLike(id);
+            setLiked(active);
+            setLikeCount(await getLikeCount(id));
+        } catch { alert("로그인이 필요한 기능입니다."); }
     };
 
-    // -----------------------------------------------------
-    // 👍 좋아요 토글
-    // -----------------------------------------------------
-    const handleToggleLike = async () => {
-        await toggleLike(id);
-        setLiked(!liked);
-        getLikeCount(id).then(setLikeCount);
+    const handleFavorite = async () => {
+        try {
+            await toggleFavorite(id);
+            setFavorited((value) => !value);
+            setFavoriteCount(await getFavoriteCount(id));
+        } catch { alert("로그인이 필요한 기능입니다."); }
     };
 
-    // -----------------------------------------------------
-    // 📝 댓글 작성
-    // -----------------------------------------------------
-    const handleCreateComment = async () => {
-        if (comment.trim() === "") return;
-
-        await createComment(id, { content: comment });
-        setComment("");
-
-        getComments(id).then(setComments);
+    const handleComment = async (event) => {
+        event.preventDefault();
+        if (!comment.trim()) return;
+        try {
+            await createComment(id, { content: comment.trim() });
+            setComment("");
+            await loadComments();
+        } catch { alert("댓글을 작성하려면 로그인해주세요."); }
     };
+
+    if (!book) return <div className="loading-state">도서 정보를 불러오는 중입니다.</div>;
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 4, p: 2 }}>
+        <section className="page-section detail-page">
+            <div className="detail-layout">
+                <div className="detail-cover">
+                    {book.coverImageUrl ? <img src={book.coverImageUrl} alt={`${book.title} 표지`} /> : <div className="cover-empty"><AutoStoriesRoundedIcon /><span>표지 이미지 없음</span></div>}
+                </div>
+                <article className="detail-content">
+                    <span className="eyebrow">{genreLabels[book.genre] || book.genre}</span>
+                    <h1>{book.title}</h1>
+                    <p className="detail-author">{book.author}</p>
+                    <div className="meta-row"><span>{languageLabels[book.language] || book.language}</span><span>좋아요 {likeCount}</span><span>찜 {favoriteCount}</span></div>
+                    <div className="book-description">{book.content || "등록된 내용이 없습니다."}</div>
+                    <div className="reaction-row">
+                        <button className={`reaction-button ${liked ? "active like" : ""}`} onClick={handleLike}>{liked ? <ThumbUpRoundedIcon /> : <ThumbUpOffAltRoundedIcon />}좋아요</button>
+                        <button className={`reaction-button ${favorited ? "active favorite" : ""}`} onClick={handleFavorite}>{favorited ? <FavoriteRoundedIcon /> : <FavoriteBorderRoundedIcon />}찜하기</button>
+                    </div>
+                </article>
+            </div>
 
-            {/* --------------------------------------
-                 상단: 이미지 + 상세 정보
-            --------------------------------------- */}
-            <Box sx={{ display: "flex", gap: 4 }}>
-
-                {/* 이미지 */}
-                <Box
-                    sx={{
-                        width: 400,
-                        height: 600,
-                        border: "1px solid #ccc",
-                        borderRadius: 2,
-                        overflow: "hidden",
-                    }}
-                >
-                    {book.coverImageUrl ? (
-                        <img
-                            src={book.coverImageUrl}
-                            alt={book.title}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                    ) : (
-                        <Box
-                            sx={{
-                                width: "100%",
-                                height: "100%",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                bgcolor: "#f0f0f0",
-                                color: "#888",
-                            }}
-                        >
-                            이미지 없음
-                        </Box>
-                    )}
-                </Box>
-
-                {/* 상세 정보 */}
-                <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Box sx={{ border: "1px solid #ccc", borderRadius: 1, p: 2, fontSize: "1.8rem", fontWeight: "bold" }}>
-                        {book.title}
-                    </Box>
-
-                    {/* 정보 그리드 */}
-                    <Box sx={{ display: "flex", gap: 2 }}>
-                        <Box sx={{ border: "1px solid #ccc", borderRadius: 1, p: 1 }}>저자: {book.author}</Box>
-                        <Box sx={{ border: "1px solid #ccc", borderRadius: 1, p: 1 }}>
-                            장르: {GENRE_LABEL[book.genre] || book.genre}</Box>
-                        <Box sx={{ border: "1px solid #ccc", borderRadius: 1, p: 1 }}>
-                            언어: {LANGUAGE_LABEL[book.language] || book.language}</Box>
-                    </Box>
-
-                    {/* 줄거리 */}
-                    <Box sx={{ border: "1px solid #ccc", borderRadius: 1, p: 2, minHeight: 200, whiteSpace: "pre-wrap" }}>
-                        {book.content || "줄거리 정보가 없습니다."}
-                    </Box>
-
-                    {/* 좋아요 + 찜 */}
-                    <Box sx={{ display: "flex", gap: 2, alignItems: "center", mt: 2 }}>
-
-                        {/* 좋아요 버튼 */}
-                        <IconButton onClick={handleToggleLike} color="primary">
-                            {liked ? <ThumbUpIcon /> : <ThumbUpOffAltIcon />}
-                        </IconButton>
-                        <Typography>좋아요: {likeCount}</Typography>
-
-                        {/* 찜 버튼 */}
-                        <IconButton onClick={handleToggleFavorite} color="error">
-                            {saved ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                        </IconButton>
-                        <Typography>찜: {favoriteCount}</Typography>
-                    </Box>
-                </Box>
-            </Box>
-
-            {/* --------------------------------------
-                 댓글 입력 및 목록
-            --------------------------------------- */}
-            <Box sx={{ mt: 4 }}>
-                <Typography variant="h6" gutterBottom>
-                    댓글
-                </Typography>
-
-                {/* 댓글 입력 */}
-                <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                    <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="댓글을 입력하세요..."
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                    />
-                    <Button variant="contained" onClick={handleCreateComment}>
-                        작성
-                    </Button>
-                </Box>
-
-                {/* 댓글 리스트 */}
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    {comments.map((c) => (
-                        <Box key={c.id} sx={{ p: 1, border: "1px solid #ccc", borderRadius: 1 }}>
-                            <strong>{c.writerName}</strong>
-                            <p>{c.content}</p>
-                            <Button
-                                size="small"
-                                color="error"
-                                onClick={() =>
-                                    deleteComment(c.id).then(() =>
-                                        getComments(id).then(setComments)
-                                    )
-                                }
-                            >
-                                삭제
-                            </Button>
-                        </Box>
-                    ))}
-                </Box>
-            </Box>
-        </Box>
+            <section className="comments-section">
+                <div className="section-heading"><div><span className="eyebrow">Comments</span><h2>댓글 {comments.length}</h2></div></div>
+                <form className="comment-form" onSubmit={handleComment}><input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="도서에 대한 생각을 남겨보세요." maxLength={500} /><button className="primary-btn" type="submit">작성</button></form>
+                <div className="comment-list">
+                    {comments.map((item) => <article className="comment-item" key={item.id}><div><strong>{item.writerName}</strong><p>{item.content}</p></div><button className="icon-button danger" title="댓글 삭제" aria-label="댓글 삭제" onClick={() => deleteComment(item.id).then(loadComments)}><DeleteOutlineRoundedIcon /></button></article>)}
+                    {!comments.length && <p className="muted-text">아직 댓글이 없습니다.</p>}
+                </div>
+            </section>
+        </section>
     );
 }

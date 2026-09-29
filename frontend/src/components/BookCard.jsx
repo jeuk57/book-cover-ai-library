@@ -1,36 +1,26 @@
 import { Link } from "react-router-dom";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 
 export default function BookCard({ id, title, author, coverImageUrl, rank }) {
-    const hasImage = Boolean(coverImageUrl);
-    const clickable = id !== null && id !== undefined;
-
-    const card = (
-        <div className="book-card">
-            {rank && <div className="book-rank">{rank}</div>}
-
+    const content = (
+        <article className="book-card">
+            {rank && <span className="book-rank">{rank}</span>}
             <div className="book-cover-wrap">
-                {hasImage ? (
-                    <img src={coverImageUrl} alt={title} className="book-cover" loading="lazy" />
+                {coverImageUrl ? (
+                    <img src={coverImageUrl} alt={`${title} 표지`} className="book-cover" loading="lazy" />
                 ) : (
-                    <div className="book-cover placeholder">이미지 없음</div>
+                    <div className="book-cover placeholder">
+                        <AutoStoriesRoundedIcon />
+                        <span>표지 준비 중</span>
+                    </div>
                 )}
             </div>
-
             <div className="book-meta">
-                <p className="book-title">{title}</p>
-                <p className="book-author">{author}</p>
+                <h3 className="book-title">{title}</h3>
+                <p className="book-author">{author || "저자 미상"}</p>
             </div>
-        </div>
+        </article>
     );
 
-    if (!clickable) {
-        return <div className="book-card-link disabled">{card}</div>;
-    }
-
-    return (
-        // 수정됨: /books/detail → /books/${id}
-        <Link to={`/books/${id}`} className="book-card-link">
-            {card}
-        </Link>
-    );
+    return id ? <Link to={`/books/${id}`} className="book-card-link">{content}</Link> : content;
 }

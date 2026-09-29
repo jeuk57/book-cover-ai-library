@@ -11,6 +11,5 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
     int countByBookId(Long bookId);
 
-    // 좋아요 여부 조회 추가
     boolean existsByBookIdAndUserId(Long bookId, Long userId);
 }

@@ -1,92 +1,36 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import { login } from "../services/authService";
 
 export default function Login() {
+    const [form, setForm] = useState({ loginId: "", password: "" });
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
-        loginId: "",
-        password: ""
-    });
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        const dto = {
-            loginId: formData.loginId,
-            password: formData.password
-        };
-
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         try {
-            // 로그인 API 호출
-            const res = await login(dto);
-
-            // 로그인 정보 저장 (기존 코드 유지)
-            localStorage.setItem("loginUser", JSON.stringify(res.data));
-
-            alert("로그인 성공!");
-
-            // ✨ 페이지 새로고침으로 Layout 업데이트
-            window.location.href = "/mypage";
-
-        } catch (err) {
-            console.error(err);
-            alert(err.response?.data?.message || "로그인 실패");
+            await login(form);
+            navigate("/mypage");
+            window.location.reload();
+        } catch (error) {
+            alert(error.response?.data?.message || "로그인에 실패했습니다.");
         }
     };
 
     return (
-        <div className="login-page">
-            <div className="login-card">
-                <h1 className="login-title">로그인</h1>
-
-                <form className="login-form" onSubmit={handleSubmit}>
-                    <label className="login-label">
-                        아이디
-                        <input
-                            type="text"
-                            name="loginId"
-                            className="login-input"
-                            placeholder=""
-                            value={formData.loginId}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="login-label">
-                        비밀번호
-                        <input
-                            type="password"
-                            name="password"
-                            className="login-input"
-                            placeholder="••••••••"
-                            value={formData.password}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <button type="submit" className="primary-btn full">
-                        로그인
-                    </button>
-
-                    <p style={{ textAlign: "center", marginTop: "16px", fontSize: "14px", color: "#666" }}>
-                        아직 회원이 아니신가요?{" "}
-                        <Link to="/signup" style={{ color: "#4285f4", textDecoration: "none", fontWeight: "500" }}>
-                            회원가입
-                        </Link>
-                    </p>
+        <div className="auth-page">
+            <section className="auth-panel">
+                <span className="eyebrow">Welcome back</span>
+                <h1>다시 만나서 반가워요.</h1>
+                <p>내 서재와 저장한 도서를 계속 관리해보세요.</p>
+                <form className="form-stack" onSubmit={handleSubmit}>
+                    <label>아이디<input name="loginId" value={form.loginId} onChange={(e) => setForm({ ...form, loginId: e.target.value })} required /></label>
+                    <label>비밀번호<input type="password" name="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label>
+                    <button className="primary-btn full" type="submit"><LoginRoundedIcon />로그인</button>
                 </form>
-            </div>
+                <p className="auth-switch">아직 회원이 아니신가요? <Link to="/signup">회원가입</Link></p>
+            </section>
         </div>
     );
 }

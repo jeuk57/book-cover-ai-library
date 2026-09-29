@@ -5,7 +5,6 @@ import java.util.List;
 
 public interface FavoriteService {
 
-    // 찜 추가/취소 토글
     void toggleFavorite(Long userId, Long bookId);
 
     // 특정 책의 찜 개수 조회

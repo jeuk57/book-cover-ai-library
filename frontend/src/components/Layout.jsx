@@ -1,112 +1,82 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import logo from "../assets/logo.png";
 import { getBooks } from "../services/bookService";
-import { logout, isLoggedIn, sessionCheck } from "../services/authService"; // ← 추가!
+import { logout, sessionCheck } from "../services/authService";
 
 export default function Layout({ children }) {
     const [query, setQuery] = useState("");
-    const [loggedIn, setLoggedIn] = useState(false); // ← 추가!
+    const [loggedIn, setLoggedIn] = useState(false);
     const navigate = useNavigate();
 
-    // 로그인 상태 확인 (컴포넌트 로드 시)
     useEffect(() => {
-        async function verifyLogin() {
-            const session = await sessionCheck();
-
-            if (session) {
-                setLoggedIn(true);
-            } else {
-                // 세션이 없으면 강제 로그아웃 처리
-                localStorage.removeItem("loginUser");
-                setLoggedIn(false);
-            }
-        }
-
-        verifyLogin();
+        sessionCheck().then((user) => {
+            setLoggedIn(Boolean(user));
+            if (!user) localStorage.removeItem("loginUser");
+        });
     }, []);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        const keyword = query.trim();
+    const handleSearch = async (event) => {
+        event.preventDefault();
+        const keyword = query.trim().toLowerCase();
         if (!keyword) return;
-
-        const lower = keyword.toLowerCase();
 
         try {
             const books = await getBooks();
-
-            const target = books.find(
-                (b) =>
-                    b.title.toLowerCase().includes(lower) ||
-                    (b.author && b.author.toLowerCase().includes(lower))
+            const book = books.find(({ title, author }) =>
+                title.toLowerCase().includes(keyword) || author?.toLowerCase().includes(keyword)
             );
-
-            if (target) {
-                navigate(`/books/${target.id}`);
-            } else {
-                alert("검색 결과가 없습니다.");
-            }
-        } catch (err) {
-            console.error("검색 중 오류 발생:", err);
-            alert("검색 중 오류가 발생했습니다.");
+            book ? navigate(`/books/${book.id}`) : alert("검색 결과가 없습니다.");
+        } catch {
+            alert("도서를 검색하지 못했습니다.");
         }
     };
 
-    // 로그아웃 처리 (추가!)
     const handleLogout = async () => {
-        try {
-            await logout();
-            setLoggedIn(false);
-            alert("로그아웃 되었습니다.");
-            navigate("/");
-        } catch (error) {
-            console.error("로그아웃 에러:", error);
-            alert("로그아웃 중 오류가 발생했습니다.");
-        }
+        await logout();
+        setLoggedIn(false);
+        navigate("/");
     };
 
     return (
         <div className="layout">
             <header className="nav-bar">
-                <div className="nav-left">
-                    <Link to="/" className="brand-link">
-                        <div className="brand">
-                            <img src={logo} alt="로고" className="brand-logo" />
-                        </div>
+                <div className="nav-inner">
+                    <Link to="/" className="brand-link" aria-label="Book Atelier 홈">
+                        <img src={logo} alt="Book Atelier" className="brand-logo" />
                     </Link>
 
-                    <div className="nav-links">
-                        <Link to="/mypage" className="nav-link active" style={{ textDecoration: 'none' }}>
-                            내 서재
-                        </Link>
+                    <nav className="nav-links" aria-label="주요 메뉴">
+                        <NavLink to="/books" className="nav-link">도서 둘러보기</NavLink>
+                        <NavLink to="/books/new" className="nav-link">도서 등록</NavLink>
+                        <NavLink to="/mypage" className="nav-link">내 서재</NavLink>
+                    </nav>
+
+                    <div className="nav-actions">
+                        <form className="search-bar" onSubmit={handleSearch}>
+                            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목 또는 저자 검색" />
+                            <button type="submit" className="icon-button" aria-label="검색" title="검색">
+                                <SearchRoundedIcon />
+                            </button>
+                        </form>
+
+                        {loggedIn ? (
+                            <button onClick={handleLogout} className="account-button">
+                                <LogoutRoundedIcon />
+                                로그아웃
+                            </button>
+                        ) : (
+                            <Link to="/login" className="account-button">
+                                <LoginRoundedIcon />
+                                로그인
+                            </Link>
+                        )}
                     </div>
                 </div>
-
-                <div className="nav-right">
-                    <form className="search-bar" onSubmit={handleSearch}>
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="도서 검색"
-                        />
-                        <button type="submit" className="search-icon">&#128269;</button>
-                    </form>
-
-                    {/* 로그인/로그아웃 버튼 전환 */}
-                    {loggedIn ? (
-                        <button onClick={handleLogout} className="login-btn">
-                            로그아웃
-                        </button>
-                    ) : (
-                        <Link to="/login" className="login-btn">
-                            로그인
-                        </Link>
-                    )}
-                </div>
             </header>
-
             <main className="layout-body">{children}</main>
         </div>
     );

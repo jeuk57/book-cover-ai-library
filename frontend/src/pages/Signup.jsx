@@ -1,136 +1,46 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { signup } from '../services/authService';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import PersonAddAltRoundedIcon from "@mui/icons-material/PersonAddAltRounded";
+import { signup } from "../services/authService";
 
 export default function Signup() {
+    const [form, setForm] = useState({ name: "", loginId: "", email: "", password: "", confirmPassword: "" });
     const navigate = useNavigate();
+    const update = (event) => setForm({ ...form, [event.target.name]: event.target.value });
 
-    const [formData, setFormData] = useState({
-        name: '',
-        loginId: '',   // ★ 변경됨 (username → loginId)
-        password: '',
-        confirmPassword: '',
-        email: ''
-    });
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (formData.password !== formData.confirmPassword) {
-            alert('비밀번호가 일치하지 않습니다.');
-            return;
-        }
-
-        // 백엔드 UserSignupRequest DTO 형식 그대로 보내기
-        const dto = {
-            name: formData.name,
-            loginId: formData.loginId,   // ★ 백엔드 필드명과 동일하게
-            password: formData.password,
-            email: formData.email
-        };
-
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        if (form.password !== form.confirmPassword) return alert("비밀번호가 일치하지 않습니다.");
         try {
-            const result = await signup(dto);
-            console.log("회원가입 성공:", result);
-
-            alert('회원가입이 완료되었습니다!');
-            navigate('/login');
-        } catch (err) {
-            console.error(err);
-            alert(err.response?.data?.message || "회원가입 중 오류가 발생했습니다.");
+            const request = {
+                name: form.name,
+                loginId: form.loginId,
+                email: form.email,
+                password: form.password,
+            };
+            await signup(request);
+            navigate("/login");
+        } catch (error) {
+            alert(error.response?.data?.message || "회원가입에 실패했습니다.");
         }
     };
 
     return (
-        <div className="login-page">
-            <div className="login-card" style={{ maxWidth: '450px' }}>
-                <h1 className="login-title">회원가입</h1>
-
-                <form className="login-form" onSubmit={handleSubmit}>
-                    <label className="login-label">
-                        닉네임
-                        <input
-                            type="text"
-                            name="name"
-                            className="login-input"
-                            placeholder="홍길동"
-                            value={formData.name}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="login-label">
-                        아이디
-                        <input
-                            type="text"
-                            name="loginId"   // ★ 여기서도 loginId로 변경
-                            className="login-input"
-                            placeholder="user123"
-                            value={formData.loginId}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="login-label">
-                        이메일
-                        <input
-                            type="email"
-                            name="email"
-                            className="login-input"
-                            placeholder="you@example.com"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="login-label">
-                        비밀번호
-                        <input
-                            type="password"
-                            name="password"
-                            className="login-input"
-                            placeholder="••••••••"
-                            value={formData.password}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="login-label">
-                        비밀번호 확인
-                        <input
-                            type="password"
-                            name="confirmPassword"
-                            className="login-input"
-                            placeholder="••••••••"
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <button type="submit" className="primary-btn full">
-                        회원가입
-                    </button>
-
-                    <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px', color: '#666' }}>
-                        이미 회원이신가요?{" "}
-                        <Link to="/login" style={{ color: '#4285f4', textDecoration: 'none', fontWeight: '500' }}>
-                            로그인
-                        </Link>
-                    </p>
+        <div className="auth-page">
+            <section className="auth-panel wide">
+                <span className="eyebrow">Create account</span>
+                <h1>나만의 서재를 시작하세요.</h1>
+                <p>도서를 만들고 다른 사용자의 작품을 저장할 수 있습니다.</p>
+                <form className="form-stack two-columns" onSubmit={handleSubmit}>
+                    <label>이름<input name="name" value={form.name} onChange={update} required /></label>
+                    <label>아이디<input name="loginId" value={form.loginId} onChange={update} required /></label>
+                    <label className="span-two">이메일<input type="email" name="email" value={form.email} onChange={update} required /></label>
+                    <label>비밀번호<input type="password" name="password" value={form.password} onChange={update} required /></label>
+                    <label>비밀번호 확인<input type="password" name="confirmPassword" value={form.confirmPassword} onChange={update} required /></label>
+                    <button className="primary-btn full span-two" type="submit"><PersonAddAltRoundedIcon />회원가입</button>
                 </form>
-            </div>
+                <p className="auth-switch">이미 회원이신가요? <Link to="/login">로그인</Link></p>
+            </section>
         </div>
     );
 }
